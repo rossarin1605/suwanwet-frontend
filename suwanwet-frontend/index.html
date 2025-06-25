@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suwanwet Farm</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun&display=swap" rel="stylesheet" />
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #00675b;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.5);
+            z-index: -1;
+        }
+
+        h1 {
+            text-align: center;
+            color: #ffbf00;
+            margin-bottom: 20px;
+        }
+
+        .shop {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            max-width: 1200px;
+            margin: 0 auto 30px;
+        }
+
+        .product {
+            background: #fff9a0;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            width: 180px;
+            padding: 15px;
+            text-align: center;
+            transition: transform 0.15s ease;
+            cursor: pointer;
+        }
+        .product:hover {
+            transform: scale(1.05);
+        }
+
+        .product img {
+            width: 100%;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            height: 130px;
+            object-fit: cover;
+        }
+
+        .product span {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #000000;
+        }
+
+        .qty-control {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .qty-control button {
+            background: #f0c6fb;
+            border: none;
+            color: rgb(0, 0, 0);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            user-select: none;
+        }
+        .qty-control button:hover {
+            background-color: #c4a0d2;
+        }
+        .qty-input {
+            width: 40px;
+            text-align: center;
+            padding: 4px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button.add-btn {
+            background: #f0c6fb;
+            color: rgb(0, 0, 0);
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s ease;
+            user-select: none;
+        }
+        button.add-btn:hover {
+            background-color: #bd97c6;
+        }
+
+        #cart {
+            background: #ffffffcc;
+            padding: 15px;
+            border-radius: 8px;
+            max-width: 400px;
+            margin: 20px auto;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            backdrop-filter: blur(4px);
+        }
+
+        #cart li {
+            padding: 5px 0;
+            border-bottom: 1px dotted #ccc;
+            color: #2d572c;
+            font-weight: 600;
+        }
+
+        label, textarea, input {
+            display: block;
+            margin: 10px auto;
+            max-width: 400px;
+            width: 100%;
+            font-size: 14px;
+            color: #1b4d1b;
+            font-weight: 600;
+        }
+
+        textarea {
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            background: #e8f5e9;
+            resize: vertical;
+            color: #2e7d32;
+            font-weight: normal;
+        }
+
+        button.send-btn {
+            background: #fff9a0;
+            color: rgb(0, 0, 0);
+            border: none;
+            padding: 10px 20px;
+            margin: 20px auto;
+            display: block;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            user-select: none;
+            transition: background-color 0.2s ease;
+        }
+        button.send-btn:hover {
+            background-color: #dfd658;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🥬 Suwanwet Farm 🥬</h1>
+
+    <div class="shop" id="shop"></div>
+
+    <h2 style="text-align:center; color:#000000;">🧺 ตะกร้าของคุณ</h2>
+    <ul id="cart"></ul>
+    <p style="text-align:center; font-weight:bold; color:#2d572c;">รวม: <span id="total">0</span> บาท</p>
+
+    <label>🕒 เวลาที่รับของ:
+        <input type="time" id="pickupTime" />
+    </label>
+
+    <label>📝 หมายเหตุเพิ่มเติม:
+        <textarea id="note" rows="3" placeholder="ตัวอย่าง: ขอผักสด ไม่ใส่ถุงพลาสติก หรือรายละเอียดอื่นๆ"></textarea>
+    </label>
+
+    <button class="send-btn" onclick="sendOrder()">ส่งออเดอร์</button>
+
+    <script>
+        // **เปลี่ยน URL นี้เป็น URL ของ Backend ที่คุณ Deploy แล้ว (เช่น https://your-backend-app.onrender.com)**
+        const BACKEND_URL = 'https://suwanwet-backend.onrender.com'; // ใช้ localhost ระหว่างพัฒนา, เปลี่ยนเมื่อ Deploy จริง
+
+        const products = [
+            { name: "บีทรูท", price: 13, img: "https://cdn.pixabay.com/photo/2016/07/25/16/38/onion-1534966_960_720.jpg" }, 
+            { name: "กะหล่ำปลี", price: 13, img: "https://cdn.pixabay.com/photo/2017/07/16/10/43/cabbage-2503288_960_720.jpg" }, 
+            { name: "แครอท", price: 13, img: "https://cdn.pixabay.com/photo/2017/06/02/18/24/carrot-2360868_960_720.jpg" }, 
+            { name: "ข้าวโพด", price: 13, img: "https://cdn.pixabay.com/photo/2018/01/22/14/02/chinese-cabbage-3095332_960_720.jpg" }, 
+            { name: "กระเทียม", price: 13, img: "https://cdn.pixabay.com/photo/2017/06/11/07/51/spinach-2397428_960_720.jpg" }, 
+            { name: "แตงกวา", price: 13, img: "https://cdn.pixabay.com/photo/2016/07/16/08/34/cucumber-1511505_960_720.jpg" }, 
+            { name: "หัวหอม", price: 13, img: "https://cdn.pixabay.com/photo/2016/07/25/16/38/onion-1534966_960_720.jpg" }, 
+            { name: "แรดิช หัวผักกาด", price: 13, img: "https://cdn.pixabay.com/photo/2017/03/27/14/48/choy-sum-2173671_960_720.jpg" }, 
+            { name: "ฟักทอง", price: 13, img: "https://cdn.pixabay.com/photo/2018/10/05/21/29/pumpkin-3727216_960_720.jpg" }, 
+            { name: "มะเขือเทศ", price: 13, img: "https://cdn.pixabay.com/photo/2018/06/06/22/10/tomato-3453799_960_720.jpg" }, 
+            { name: "แตงโม", price: 13, img: "https://cdn.pixabay.com/photo/2013/02/21/19/04/watermelon-84511_960_720.jpg" }, 
+            { name: "ข้าว", price: 13, img: "https://cdn.pixabay.com/photo/2017/06/12/16/50/rice-2395610_960_720.jpg" }, 
+            { name: "ทานตะวัน", price: 13, img: "https://cdn.pixabay.com/photo/2017/07/23/17/40/coriander-2530882_960_720.jpg" } 
+        ];
+
+        const shopEl = document.getElementById("shop");
+        const cart = [];
+        const qtyMap = {};
+
+        products.forEach(product => {
+            qtyMap[product.name] = 1;
+
+            const div = document.createElement("div");
+            div.className = "product";
+            div.innerHTML = `
+                <img src="${product.img}" alt="${product.name}" />
+                <span>${product.name} - ${product.price}฿</span>
+                <div class="qty-control">
+            <button onclick="changeQty('${product.name}', -1)">-</button>
+                    <input
+                        type="number"
+                        min="1"
+                        id="qty-${product.name}"
+                        class="qty-input"
+                        value="1"
+                    onchange="manualQtyChange('${product.name}')"
+                    />
+                    <button onclick="changeQty('${product.name}', 1)">+</button>
+                </div>
+                <button class="add-btn" onclick="addToCart('${product.name}', ${product.price})">ใส่ตะกร้า</button>
+            `;
+            shopEl.appendChild(div);
+        });
+
+        function changeQty(name, change) {
+            qtyMap[name] = Math.max(1, (qtyMap[name] || 1) + change);
+            document.getElementById(`qty-${name}`).value = qtyMap[name];
+        }
+
+        function manualQtyChange(name) {
+            const val = parseInt(document.getElementById(`qty-${name}`).value);
+            qtyMap[name] = isNaN(val) || val < 1 ? 1 : val;
+            document.getElementById(`qty-${name}`).value = qtyMap[name];
+        }
+
+        function addToCart(name, price) {
+            const qty = qtyMap[name];
+            const found = cart.find(item => item.name === name);
+            if (found) {
+                found.qty += qty;
+            } else {
+                cart.push({ name, price, qty });
+            }
+            updateCart();
+        }
+
+        function updateCart() {
+            const cartList = document.getElementById("cart");
+            const totalEl = document.getElementById("total");
+            cartList.innerHTML = "";
+            let total = 0;
+
+            cart.forEach((item) => {
+                const li = document.createElement("li");
+                li.textContent = `${item.name} x ${item.qty} ชิ้น = ${item.qty * item.price}฿`; 
+                cartList.appendChild(li);
+                total += item.qty * item.price;
+            });
+
+            totalEl.textContent = total;
+        }
+
+        async function sendOrder() {
+            if (cart.length === 0) {
+                alert("กรุณาเลือกสินค้าก่อนส่งออเดอร์");
+                return;
+            }
+
+            const pickupTime = document.getElementById("pickupTime").value;
+            const note = document.getElementById("note").value.trim();
+
+            if (!pickupTime) {
+                alert("กรุณาระบุเวลาที่รับของ");
+                return;
+            }
+
+            const orderData = {
+                items: cart,
+                pickupTime: pickupTime,
+                note: note,
+                time: new Date().toISOString(), 
+                status: 'pending' 
+            };
+
+        try {
+                const response = await fetch(`${BACKEND_URL}/api/orders`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(orderData)
+                });
+
+                if (response.ok) {
+                    alert("✅ ส่งออเดอร์เรียบร้อยแล้ว! ออเดอร์ของคุณกำลังดำเนินการ");
+                    cart.length = 0;
+                    updateCart();
+                    document.getElementById("pickupTime").value = "";
+                    document.getElementById("note").value = "";
+                } else {
+                    const errorData = await response.json();
+                    alert(`⚠️ เกิดข้อผิดพลาดในการส่งออเดอร์: ${errorData.message || response.statusText}`);
+                }
+            } catch (error) {
+                console.error('Error sending order:', error);
+                alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์ กรุณาลองใหม่");
+            }
+        }
+    </script>
+</body>
+</html>
